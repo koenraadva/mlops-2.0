@@ -1,0 +1,3 @@
+from azureml.core import Run
+test_run = Run(exp, 'Animals-Classification_1640006981_6a272b07')
+test_run.get_details()

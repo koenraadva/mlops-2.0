@@ -1,0 +1,5 @@
+# Remove the processed directory
+import shutil
+
+for animal_name in ANIMALS:
+    shutil.rmtree(os.path.join(processed_path, animal_name), )

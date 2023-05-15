@@ -1,0 +1,8 @@
+# Assertions will throw an error when the condition fails.
+
+# Check if the amount of datapaths contains 600 elements
+assert len(testing_datapaths) == 600
+# Check if we have 200 cats, dogs and pandas
+assert len(list(filter(lambda filepath: 'cats' in filepath[1], testing_datapaths))) == 200
+assert len(list(filter(lambda filepath: 'dogs' in filepath[1], testing_datapaths))) == 200
+assert len(list(filter(lambda filepath: 'pandas' in filepath[1], testing_datapaths))) == 200

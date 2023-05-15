@@ -1,0 +1,5 @@
+def checkDatasets():
+    if all(animal in list(datasets.keys()) for animal in ANIMALS):
+        print("All datasets are available!")
+    else:
+        print("Your are missing some datasets.")

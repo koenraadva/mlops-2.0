@@ -1,0 +1,1281 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Training\r\n",
+        "\r\n",
+        "In this notebook, we will learn how to train an AI model in the cloud.  \r\n",
+        "There are a few things that are special regarding Cloud AI training, but also a lot of similarities between our old-school way of working."
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Again let us start by setting some global parameters first"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "INITIAL_LEARNING_RATE = 0.01\r\n",
+        "MAX_EPOCHS = 50\r\n",
+        "BATCH_SIZE = 32\r\n",
+        "PATIENCE = 11\r\n",
+        "model_name = 'animal-cnn'"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "gather": {
+          "logged": 1683231211505
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "And of course importing the packages we need! Again, don't forget to set your kernel right in the top-right corner!"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import numpy as np\r\n",
+        "import matplotlib.pyplot as plt\r\n",
+        "import cv2\r\n",
+        "\r\n",
+        "import os\r\n",
+        "from glob import glob\r\n",
+        "import warnings\r\n",
+        "\r\n",
+        "warnings.filterwarnings(\"ignore\")\r\n",
+        "import random\r\n",
+        "SEED = 42   # set random seed\r\n",
+        "random.seed(SEED)\r\n",
+        "\r\n",
+        "from typing import List"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231218930
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "## Import AzureML packages\r\n",
+        "from azureml.core import Workspace\r\n",
+        "from azureml.core import Dataset\r\n",
+        "from azureml.data.datapath import DataPath\r\n",
+        "from azureml.core.compute import AmlCompute\r\n",
+        "from azureml.core.compute import ComputeTarget"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231219140
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "One special import are these Utils scripts. You can read more about them in the `utils > utils.py` file. I have included them here to load them in. They contain some helper functions we will be needing later on."
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from utils.utils import *"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231261686
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Step 1: Connect Workspace"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Follow the same steps as the previous notebook, to set up your Workspace configuration!"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "## Either get environment variables, or a fallback name, which is the second parameter.\r\n",
+        "## Currently, fill in the fallback values. Later on, we will make sure to work with Environment values. So we're already preparing for it in here!\r\n",
+        "workspace_name = os.environ.get('WORKSPACE', 'azure-ai-training')\r\n",
+        "subscription_id = os.environ.get('SUBSCRIPTION_ID', '763622cd-d9e1-46f1-84c7-635df9708641')\r\n",
+        "resource_group = os.environ.get('RESOURCE_GROUP', 'mlops-nathansegers')"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231261851
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "ws = Workspace.get(name=workspace_name,\r\n",
+        "               subscription_id=subscription_id,\r\n",
+        "               resource_group=resource_group)"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231262458
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Step 1.1 -- Create Compute Cluster\r\n",
+        "\r\n",
+        "A Compute Cluster is a combination of multiple Compute Instances. Azure will scale these machines according to the number of nodes we fill into the configuration.  \r\n",
+        "Based on the amount of Jobs we want to run in parallel, multiple machines will be created.\r\n",
+        "\r\n",
+        "We choose to define a minimum of 0 machines, which means Azure will need some time to create at least one machine everytime we need one.\r\n",
+        "If you keep the minimum on 1, you always have one that's ready for your development.\r\n",
+        "The timeout time to scale down back to 0 machines can also be configured if required."
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import os\r\n",
+        "\r\n",
+        "# choose a name for your cluster\r\n",
+        "compute_name = os.environ.get(\"AML_COMPUTE_CLUSTER_NAME\", \"cpu-cluster\")\r\n",
+        "compute_min_nodes = os.environ.get(\"AML_COMPUTE_CLUSTER_MIN_NODES\", 0)\r\n",
+        "compute_max_nodes = os.environ.get(\"AML_COMPUTE_CLUSTER_MAX_NODES\", 4)\r\n",
+        "\r\n",
+        "# This example uses CPU VM. For using GPU VM, set SKU to STANDARD_NC6\r\n",
+        "vm_size = os.environ.get(\"AML_COMPUTE_CLUSTER_SKU\", \"STANDARD_D2_V2\")\r\n",
+        "\r\n",
+        "\r\n",
+        "if compute_name in ws.compute_targets:\r\n",
+        "    compute_target = ws.compute_targets[compute_name]\r\n",
+        "    if compute_target and type(compute_target) is AmlCompute:\r\n",
+        "        print(\"found compute target: \" + compute_name)\r\n",
+        "else:\r\n",
+        "    print(\"creating new compute target...\")\r\n",
+        "    provisioning_config = AmlCompute.provisioning_configuration(vm_size = vm_size,\r\n",
+        "                                                                min_nodes = compute_min_nodes, \r\n",
+        "                                                                max_nodes = compute_max_nodes)\r\n",
+        "\r\n",
+        "    # create the cluster\r\n",
+        "    compute_target = ComputeTarget.create(ws, compute_name, provisioning_config)\r\n",
+        "    \r\n",
+        "    # can poll for a minimum number of nodes and for a specific timeout. \r\n",
+        "    # if no min node count is provided it will use the scale settings for the cluster\r\n",
+        "    compute_target.wait_for_completion(show_output=True, min_node_count=None, timeout_in_minutes=20)\r\n",
+        "    \r\n",
+        "     # For a more detailed view of current AmlCompute status, use get_status()\r\n",
+        "    print(compute_target.get_status().serialize())"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231262909
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Find and download datasets"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "datasets = Dataset.get_all(workspace=ws) # Make sure to give our workspace with it\r\n",
+        "print(datasets)"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231263204
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Step 2: Create an AI model and training code\r\n",
+        "\r\n",
+        "We will first create an AI model to use in our training script.  \r\n",
+        "A basic AI model has been given in the /utils/utils.py directory. You can change it there if you want to\r\n",
+        "\r\n",
+        "In this step, we will also configure a Training script. This script is an Executable Python script.  \r\n",
+        "This is slightly different from our other way of working, where we work with Notebooks.\r\n",
+        "\r\n",
+        "Because Azure will be launching and running our Python scripts, we need to create one file that can be executed in one go.\r\n",
+        "This needs all our imports, packages, data ... ready without manual interference."
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "We'll store all of these files into a scripts directory. That way we can upload that directory to our training VM later."
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Step 2.1 -- Prepare the scripts"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "script_folder = os.path.join(os.getcwd(), 'scripts')\r\n",
+        "os.makedirs(script_folder, exist_ok=True)"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231263396
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "%%writefile $script_folder/train.py\r\n",
+        "\r\n",
+        "import argparse\r\n",
+        "import os\r\n",
+        "from glob import glob\r\n",
+        "import random\r\n",
+        "import tensorflow as tf\r\n",
+        "\r\n",
+        "# This time we will need our Tensorflow Keras libraries, as we will be working with the AI training now\r\n",
+        "from tensorflow import keras\r\n",
+        "from tensorflow.keras.optimizers import SGD\r\n",
+        "from tensorflow.keras.preprocessing.image import ImageDataGenerator\r\n",
+        "from sklearn.metrics import classification_report, confusion_matrix\r\n",
+        "\r\n",
+        "# This AzureML package will allow to log our metrics etc.\r\n",
+        "from azureml.core import Run\r\n",
+        "\r\n",
+        "# Important to load in the utils as well!\r\n",
+        "from utils import *\r\n",
+        "\r\n",
+        "\r\n",
+        "### HARDCODED VARIABLES FOR NOW\r\n",
+        "### TODO for the students:\r\n",
+        "### Make sure to adapt the ArgumentParser on line 31 to include these parameters\r\n",
+        "### You can base your answer on the lines that are already there\r\n",
+        "\r\n",
+        "SEED = 42\r\n",
+        "INITIAL_LEARNING_RATE = 0.01\r\n",
+        "BATCH_SIZE = 32\r\n",
+        "PATIENCE = 11\r\n",
+        "model_name = 'animal-cnn-test'\r\n",
+        "\r\n",
+        "\r\n",
+        "parser = argparse.ArgumentParser()\r\n",
+        "parser.add_argument('--training-folder', type=str, dest='training_folder', help='training folder mounting point')\r\n",
+        "parser.add_argument('--testing-folder', type=str, dest='testing_folder', help='testing folder mounting point')\r\n",
+        "parser.add_argument('--epochs', type=int, dest='epochs', help='The amount of Epochs to train')\r\n",
+        "args = parser.parse_args()\r\n",
+        "\r\n",
+        "\r\n",
+        "training_folder = args.training_folder\r\n",
+        "print('Training folder:', training_folder)\r\n",
+        "\r\n",
+        "testing_folder = args.testing_folder\r\n",
+        "print('Testing folder:', testing_folder)\r\n",
+        "\r\n",
+        "MAX_EPOCHS = args.epochs\r\n",
+        "\r\n",
+        "# As we're mounting the training_folder and testing_folder onto the `/mnt/data` directories, we can load in the images by using glob.\r\n",
+        "training_paths = glob(os.path.join('/mnt/data/train', '**', 'processed_animals', '**', '*.jpg'), recursive=True)\r\n",
+        "testing_paths = glob(os.path.join('/mnt/data/test', '**', 'processed_animals', '**', '*.jpg'), recursive=True)\r\n",
+        "\r\n",
+        "print(\"Training samples:\", len(training_paths))\r\n",
+        "print(\"Testing samples:\", len(testing_paths))\r\n",
+        "\r\n",
+        "# Make sure to shuffle in the same way as I'm doing everything\r\n",
+        "random.seed(SEED)\r\n",
+        "random.shuffle(training_paths)\r\n",
+        "random.seed(SEED)\r\n",
+        "random.shuffle(testing_paths)\r\n",
+        "\r\n",
+        "print(training_paths[:3]) # Examples\r\n",
+        "print(testing_paths[:3]) # Examples\r\n",
+        "\r\n",
+        "# Parse to Features and Targets for both Training and Testing. Refer to the Utils package for more information\r\n",
+        "X_train = getFeatures(training_paths)\r\n",
+        "y_train = getTargets(training_paths)\r\n",
+        "\r\n",
+        "X_test = getFeatures(testing_paths)\r\n",
+        "y_test = getTargets(testing_paths)\r\n",
+        "\r\n",
+        "print('Shapes:')\r\n",
+        "print(X_train.shape)\r\n",
+        "print(X_test.shape)\r\n",
+        "print(len(y_train))\r\n",
+        "print(len(y_test))\r\n",
+        "\r\n",
+        "# Make sure the data is one-hot-encoded\r\n",
+        "LABELS, y_train, y_test = encodeLabels(y_train, y_test)\r\n",
+        "print('One Hot Shapes:')\r\n",
+        "\r\n",
+        "print(y_train.shape)\r\n",
+        "print(y_test.shape)\r\n",
+        "\r\n",
+        "# Create an output directory where our AI model will be saved to.\r\n",
+        "# Everything inside the `outputs` directory will be logged and kept aside for later usage.\r\n",
+        "model_path = os.path.join('outputs', model_name)\r\n",
+        "os.makedirs(model_path, exist_ok=True)\r\n",
+        "\r\n",
+        "## START OUR RUN context.\r\n",
+        "## We can now log interesting information to Azure, by using these methods.\r\n",
+        "run = Run.get_context()\r\n",
+        "\r\n",
+        "# Save the best model, not the last\r\n",
+        "cb_save_best_model = keras.callbacks.ModelCheckpoint(filepath=model_path,\r\n",
+        "                                                         monitor='val_loss', \r\n",
+        "                                                         save_best_only=True, \r\n",
+        "                                                         verbose=1)\r\n",
+        "\r\n",
+        "# Early stop when the val_los isn't improving for PATIENCE epochs\r\n",
+        "cb_early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', \r\n",
+        "                                              patience= PATIENCE,\r\n",
+        "                                              verbose=1,\r\n",
+        "                                              restore_best_weights=True)\r\n",
+        "\r\n",
+        "# Reduce the Learning Rate when not learning more for 4 epochs.\r\n",
+        "cb_reduce_lr_on_plateau = keras.callbacks.ReduceLROnPlateau(factor=.5, patience=4, verbose=1)\r\n",
+        "\r\n",
+        "opt = tf.keras.optimizers.legacy.SGD(lr=INITIAL_LEARNING_RATE, decay=INITIAL_LEARNING_RATE / MAX_EPOCHS) # Define the Optimizer\r\n",
+        "\r\n",
+        "model = buildModel((64, 64, 3), 3) # Create the AI model as defined in the utils script.\r\n",
+        "\r\n",
+        "model.compile(loss=\"categorical_crossentropy\", optimizer=opt, metrics=[\"accuracy\"])\r\n",
+        "\r\n",
+        "# Construct & initialize the image data generator for data augmentation\r\n",
+        "# Image augmentation allows us to construct “additional” training data from our existing training data \r\n",
+        "# by randomly rotating, shifting, shearing, zooming, and flipping. This is to avoid overfitting.\r\n",
+        "# It also allows us to fit AI models using a Generator, so we don't need to capture the whole dataset in memory at once.\r\n",
+        "aug = ImageDataGenerator(rotation_range=30, width_shift_range=0.1,\r\n",
+        "                         height_shift_range=0.1, shear_range=0.2, zoom_range=0.2,\r\n",
+        "                         horizontal_flip=True, fill_mode=\"nearest\")\r\n",
+        "\r\n",
+        "\r\n",
+        "# train the network\r\n",
+        "history = model.fit( aug.flow(X_train, y_train, batch_size=BATCH_SIZE),\r\n",
+        "                        validation_data=(X_test, y_test),\r\n",
+        "                        steps_per_epoch=len(X_train) // BATCH_SIZE,\r\n",
+        "                        epochs=MAX_EPOCHS,\r\n",
+        "                        callbacks=[cb_save_best_model, cb_early_stop, cb_reduce_lr_on_plateau] )\r\n",
+        "\r\n",
+        "print(\"[INFO] evaluating network...\")\r\n",
+        "predictions = model.predict(X_test, batch_size=32)\r\n",
+        "print(classification_report(y_test.argmax(axis=1), predictions.argmax(axis=1), target_names=['cats', 'dogs', 'panda'])) # Give the target names to easier refer to them.\r\n",
+        "# If you want, you can enter the target names as a parameter as well, in case you ever adapt your AI model to more animals.\r\n",
+        "\r\n",
+        "cf_matrix = confusion_matrix(y_test.argmax(axis=1), predictions.argmax(axis=1))\r\n",
+        "print(cf_matrix)\r\n",
+        "\r\n",
+        "### TODO for students\r\n",
+        "### Find a way to log more information to the Run context.\r\n",
+        "\r\n",
+        "# Save the confusion matrix to the outputs.\r\n",
+        "np.save('outputs/confusion_matrix.npy', cf_matrix)\r\n",
+        "\r\n",
+        "print(\"DONE TRAINING\")\r\n"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Copy the Utils file into the script_folder\r\n",
+        "import shutil\r\n",
+        "shutil.copy('utils/utils.py', script_folder)"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231457903
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Step 2.2 -- Prepare the environment\r\n",
+        "\r\n",
+        "The training script we have just defined still needs some more information before we can start it.  \r\n",
+        "We'll need to define it's Anaconda or Pip environment with all the packages that should be installed prior to training.  \r\n",
+        "We can re-use the environments later, or we can use environments other people have created for us.\r\n",
+        "\r\n",
+        "You can also customize the Base Docker image to train on, if you prefer. I won't use this in here."
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from azureml.core.environment import Environment\r\n",
+        "from azureml.core.conda_dependencies import CondaDependencies\r\n",
+        "\r\n",
+        "# Create an Environment name for later use\r\n",
+        "environment_name = os.environ.get('TRAINING_ENV_NAME', 'animals-classification-env-training')\r\n",
+        "env = Environment(environment_name)\r\n",
+        "\r\n",
+        "# It's called CondaDependencies, but you can also use pip packages ;-)\r\n",
+        "env.python.conda_dependencies = CondaDependencies.create(\r\n",
+        "        # Using opencv-python-headless is interesting to skip the overhead of packages that we don't need in a headless-VM.\r\n",
+        "        pip_packages=['azureml-dataset-runtime[pandas,fuse]', 'azureml-defaults', 'tensorflow', 'scikit-learn', 'opencv-python-headless']\r\n",
+        "    )\r\n",
+        "# Register environment to re-use later\r\n",
+        "env.register(workspace = ws)"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231458270
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Step 2.3 -- Prepare the ScriptRunConfig\r\n",
+        "\r\n",
+        "A **ScriptRunConfig** is a configuration that contains all the information needed to launch a Job inside an Experiment.\r\n",
+        "This contains information to the directory of scripts it should use, the **name** of the script to start,\r\n",
+        "the **arguments** to pass into that script, the **compute** target to run the script on, and finally the **environment** to run it on.\r\n",
+        "\r\n",
+        "We then need to attach such a ScriptRunConfig onto an Experiment on Azure."
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from azureml.core import ScriptRunConfig\r\n",
+        "from azureml.core import Experiment\r\n",
+        "\r\n",
+        "experiment_name = os.environ.get('EXPERIMENT_NAME', 'Animals-Classification')\r\n",
+        "\r\n",
+        "exp = Experiment(workspace=ws, name=experiment_name) # Create a new experiment\r\n",
+        "\r\n",
+        "experiment_runs = []\r\n",
+        "\r\n",
+        "# We can start four experiments for a bunch of different epoch options\r\n",
+        "# You will notice in the actual experiments that this is not useful. Because of the way the epochs are not really used due to the EarlyStopping\r\n",
+        "for epochs in [25, 50, 75, 100]:\r\n",
+        "    args = [\r\n",
+        "        '--training-folder', datasets['animals-training-set'].as_mount('/mnt/data/train'),\r\n",
+        "        '--testing-folder', datasets['animals-testing-set'].as_mount('/mnt/data/test'),\r\n",
+        "        '--epochs', epochs]\r\n",
+        "\r\n",
+        "    script_run_config = ScriptRunConfig(\r\n",
+        "                      source_directory=script_folder,\r\n",
+        "                      script='train.py', \r\n",
+        "                      arguments=args,\r\n",
+        "                      compute_target=compute_target,\r\n",
+        "                      environment=env)\r\n",
+        "\r\n",
+        "    run = exp.submit(config=script_run_config)\r\n",
+        "    experiment_runs.append(run) # Append it to our list of experiment runs for now. This is easy for referring later!\r\n",
+        "    print('Run started!')\r\n",
+        "\r\n",
+        "    "
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683231462981
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Step 2.4 -- Await the results!\r\n",
+        "\r\n",
+        "Now that our experiment runs are starting, we can await the logs and results.  \r\n",
+        "It can take a while to run everything, but the 4 jobs should run in Parallel, if all was well configured!\r\n",
+        "\r\n",
+        "The cells below can help you in viewing the results, while you head out for a coffee!\r\n",
+        "\r\n",
+        "I use the `experiment_runs[0]` as our run to log. It's the first one that was started.\r\n",
+        "\r\n",
+        "There are a few different options for each to select the one they prefer :-)"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### Step 2.4.1 -- Plain text output"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# specify show_output to True for a verbose log\r\n",
+        "experiment_runs[0].wait_for_completion(show_output=True) "
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269214860
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### Step 2.4.2 -- AzureML Widgets\r\n",
+        "\r\n",
+        "This needs an extra package to be installed, the AzureML widgets.\r\n",
+        "(Change the environment if you're running this in a different Kernel)"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!ls /anaconda/envs"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!/anaconda/envs/azureml_py38_PT_TF/bin/python -m pip install azureml-widgets"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from azureml.widgets import RunDetails\r\n",
+        "RunDetails(experiment_runs[0]).show()"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269322143
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Step 3 -- The Output!\r\n",
+        "\r\n",
+        "As a result of our experiments, we should have a trained AI model.  \r\n",
+        "However, we have some more information that was logged or saved. You can find all this information in the Run context that we started, and Azure is filling in for us.\r\n",
+        "\r\n",
+        "Use the documentation to find out some more information.\r\n",
+        "\r\n",
+        "https://docs.microsoft.com/en-us/python/api/azureml-core/azureml.core.scriptrun?view=azure-ml-py"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from azureml.core import Experiment\r\n",
+        "\r\n",
+        "experiment_name = os.environ.get('EXPERIMENT_NAME', 'Animals-Classification')\r\n",
+        "\r\n",
+        "exp = Experiment(workspace=ws, name=experiment_name) # Re-use existing experiment with this name"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269332069
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "exp"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269334462
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "runs = exp.get_runs()"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269338868
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "first_run = next(runs)\r\n",
+        "second_run = next(runs)"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269341780
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "third_run = next(runs)"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1666095403560
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "first_run"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269344398
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "second_run.get_file_names()"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269349187
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# You can always save these details for further referencing!\r\n",
+        "second_run.get_details()"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269353927
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Step 3.1 -- TODO: Finding the logs for a specific run based on it's ID.\r\n",
+        "\r\n",
+        "Try to create a function that find the logs for a specific run.  \r\n",
+        "You only fill in the RunID number and you get the output you want."
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# answer here"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1640007585777
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Uncomment the cell below for a possible answer"
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# %load code_solutions/ViewRunDetails.txt\n",
+        "from azureml.core import Run\n",
+        "test_run = Run(exp, 'Animals-Classification_1640006981_6a272b07')\n",
+        "test_run.get_details()"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1666095163164
+        }
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Step 3.2 -- Registering and downloading our AI model\r\n",
+        "\r\n",
+        "In Azure Machine Learning Service, we can register AI models so that they are versioned and kept together with other AI models.  \r\n",
+        "We keep track of their accuracy based on the runs they were created from.\r\n",
+        "\r\n",
+        "Just a few lines are needed to register and download the AI model."
+      ],
+      "metadata": {
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "model_path = 'outputs/animal-cnn-test/'"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269367414
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "second_run.download_files(prefix=model_path)"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269369999
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "second_run.register_model(\r\n",
+        "    model_name,\r\n",
+        "    model_path=model_path,\r\n",
+        "    tags={'animals': 'cats, dogs, pandas', 'AI-Model': 'CNN'},\r\n",
+        "    description=\"Image classification on animals\",\r\n",
+        "    sample_input_dataset=datasets['animals-testing-set']\r\n",
+        ")"
+      ],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        },
+        "gather": {
+          "logged": 1683269415785
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {
+        "jupyter": {
+          "source_hidden": false,
+          "outputs_hidden": false
+        },
+        "nteract": {
+          "transient": {
+            "deleting": false
+          }
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python38-azureml-pt-tf",
+      "language": "python",
+      "display_name": "Python 3.8 - Pytorch and Tensorflow"
+    },
+    "language_info": {
+      "name": "python",
+      "version": "3.8.5",
+      "mimetype": "text/x-python",
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "pygments_lexer": "ipython3",
+      "nbconvert_exporter": "python",
+      "file_extension": ".py"
+    },
+    "kernel_info": {
+      "name": "python38-azureml-pt-tf"
+    },
+    "nteract": {
+      "version": "nteract-front-end@1.0.0"
+    },
+    "microsoft": {
+      "host": {
+        "AzureML": {
+          "notebookHasBeenCompleted": true
+        }
+      },
+      "ms_spell_check": {
+        "ms_spell_check_language": "en"
+      }
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 2
+}
