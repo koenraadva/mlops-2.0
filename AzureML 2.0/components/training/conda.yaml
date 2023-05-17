@@ -15,4 +15,3 @@ dependencies:
     - mlflow== 1.26.1
     - azureml-mlflow==1.42.0
     - Pillow
-    - opencv-python

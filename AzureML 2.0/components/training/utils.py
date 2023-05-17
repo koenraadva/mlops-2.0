@@ -1,5 +1,5 @@
 import numpy as np
-import cv2
+from PIL import Image
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, BatchNormalization, Conv2D, MaxPooling2D, Flatten, Activation, Dropout
 
@@ -28,7 +28,8 @@ def encodeLabels(y_train: List, y_test: List):
 def getFeatures(filepaths: List[str]) -> np.array:
     images = []
     for imagePath in filepaths:
-        image = cv2.imread(imagePath)
+        image = Image.open(imagePath).convert("RGB")
+        image = np.array(image)
         images.append(image)
     return np.array(images)
 
