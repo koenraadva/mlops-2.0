@@ -1,0 +1,44 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+
+type: command
+name: data_split
+is_deterministic: true
+description: Reads a data asset of images and combines them into a training and testing dataset
+display_name: Data Splitting to Train and Test
+# Let this be overridden
+version: 1.0.0
+tags:
+  git-sha: 1234567890abcdef
+  git-branch: main
+
+
+code: ./src
+
+command: "python traintestsplit.py --datasets ${{inputs.animal_1}} ${{inputs.animal_2}} ${{inputs.animal_3}} --training_data ${{outputs.training_data}} --testing_data ${{outputs.testing_data}} --split_size ${{inputs.train_test_split_factor}}"
+
+# We need to find a way to automatically use the latest version here
+environment: azureml:aml-Pillow:0.2.0
+
+inputs:
+  animal_1:
+    type: uri_folder
+    optional: False
+  animal_2:
+    type: uri_folder
+    optional: False
+  animal_3:
+    type: uri_folder
+    optional: False
+  train_test_split_factor:
+    type: number
+    optional: False
+
+outputs:
+  training_data:
+    type: uri_folder
+  testing_data:
+    type: uri_folder
+
+resources:
+  instance_count: 1
+

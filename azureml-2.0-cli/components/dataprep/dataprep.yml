@@ -1,0 +1,32 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+
+type: command
+name: data_prep_image_resize
+is_deterministic: true
+description: Reads a data asset of images and preprocesses them by resizing them to 64 to 64.
+display_name: Data preparation, Image Resizing
+# Let this be overridden
+version: 1.0.0
+tags:
+  git-sha: 1234567890abcdef
+  git-branch: main
+
+
+code: ./src
+
+command: "python dataprep.py --data ${{inputs.data}} --output_data ${{outputs.output_data}}"
+
+# We need to find a way to automatically use the latest version here
+environment: azureml:aml-Pillow:0.2.0
+
+inputs:
+  data:
+    type: uri_folder
+    optional: False
+outputs:
+  output_data:
+    type: uri_folder
+
+resources:
+  instance_count: 1
+

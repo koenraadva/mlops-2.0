@@ -1,0 +1,12 @@
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+
+conda_file: ../components/training/conda.yml
+
+description: Custom environment for AI Training (with Pillow) and Tensorflow
+image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest
+name: aml-Tensorflow-Pillow
+os_type: linux
+tags:
+  Pillow: 0.0.1
+  Tensorflow: 2.4.1
+version: 0.2.0

@@ -1,0 +1,101 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+
+display_name: Animals Classification Pipeline
+description: Pipeline with 3 component jobs with data dependencies
+
+settings:
+  default_compute: azureml:cpu-automated-test
+
+inputs:
+  epochs: 5
+  train_test_split_factor: 20
+  model_name: animals-classification-model
+
+
+jobs:
+  data_prep_dogs:
+    type: command
+    component: azureml:data_prep_image_resize:1.0.0
+    inputs:
+      data: 
+        type: uri_folder
+        path: azureml:dogs:1
+
+    outputs:
+      output_data: 
+        mode: rw_mount
+
+  data_prep_cats:
+    type: command
+    component: azureml:data_prep_image_resize:1.0.0
+    inputs:
+      data: 
+        type: uri_folder
+        path: azureml:cats:1
+
+    outputs:
+      output_data: 
+        mode: rw_mount
+
+  data_prep_pandas:
+    type: command
+    component: azureml:data_prep_image_resize:1.0.0
+    inputs:
+      data: 
+        type: uri_folder
+        path: azureml:pandas:1
+
+    outputs:
+      output_data: 
+        mode: rw_mount
+
+  data_split:
+    type: command
+    component: azureml:data_split:1.0.0
+    inputs:
+      animal_1: 
+        type: uri_folder
+        path: ${{parent.jobs.data_prep_dogs.outputs.output_data}}
+      animal_2: 
+        type: uri_folder
+        path: ${{parent.jobs.data_prep_cats.outputs.output_data}}
+      animal_3: 
+        type: uri_folder
+        path: ${{parent.jobs.data_prep_pandas.outputs.output_data}}
+      train_test_split_factor: ${{parent.inputs.train_test_split_factor}}
+
+    outputs:
+      training_data: 
+        mode: rw_mount
+      testing_data: 
+        mode: rw_mount
+
+  training:
+    type: command
+    component: azureml:training:1.0.0
+    inputs:
+      training_folder: 
+        type: uri_folder
+        path: ${{parent.jobs.data_split.outputs.training_data}}
+      testing_folder: 
+        type: uri_folder
+        path: ${{parent.jobs.data_split.outputs.testing_data}}
+      epochs: ${{parent.inputs.epochs}}
+
+    outputs:
+      output_folder: 
+        mode: rw_mount
+
+  model_registration:
+    type: command
+    component: azureml://registries/azureml/components/register_model/versions/0.0.2
+    inputs:
+      model_path: 
+        type: uri_folder
+        path: ${{parent.jobs.training.outputs.output_folder}}
+      model_name: ${{parent.inputs.model_name}}
+
+    outputs:
+      registration_details: 
+        type: uri_file

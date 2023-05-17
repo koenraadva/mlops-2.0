@@ -1,0 +1,41 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+
+type: command
+name: training
+is_deterministic: true
+description: Trains an AI model by inputting a lot of training and testing data.
+display_name: Training an AI model
+# Let this be overridden
+version: 1.0.0
+tags:
+  git-sha: 1234567890abcdef
+  git-branch: main
+
+
+code: ./src
+
+command: 'python train.py --training_folder ${{inputs.training_folder}} --testing_folder
+  ${{inputs.testing_folder}} --output_folder ${{outputs.output_folder}} --epochs
+  ${{inputs.epochs}}'
+
+# We need to find a way to automatically use the latest version here
+environment: azureml:aml-Tensorflow-Pillow:0.2.0
+
+inputs:
+  epochs:
+    optional: false
+    type: number
+  testing_folder:
+    optional: false
+    type: uri_folder
+  training_folder:
+    optional: false
+    type: uri_folder
+
+outputs:
+  output_folder:
+    type: uri_folder
+
+resources:
+  instance_count: 1
+

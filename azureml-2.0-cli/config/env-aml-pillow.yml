@@ -1,0 +1,11 @@
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+
+conda_file: ../components/dataprep/conda.yml
+
+description: Custom environment for Image Processing (with Pillow)
+image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest
+name: aml-Pillow
+os_type: linux
+tags:
+  Pillow: 0.0.1
+version: 0.2.0
