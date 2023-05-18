@@ -95,6 +95,7 @@ jobs:
         type: uri_folder
         path: ${{parent.jobs.training.outputs.output_folder}}
       model_name: ${{parent.inputs.model_name}}
+      model_type: custom
 
     outputs:
       registration_details: 
