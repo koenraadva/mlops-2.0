@@ -35,7 +35,7 @@ How to set the default workspace and resource group for the Azure CLI?
 
 **ANSWER**
 ```bash
-az configure --defaults group=<resource_group> workspace=<workspace_name>
+
 ```
 
 :::
