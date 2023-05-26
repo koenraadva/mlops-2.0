@@ -30,7 +30,7 @@ def prepareEnv(ws):
 
 def prepareDeployment(ws, environment):
 
-    service_name = os.environ.get('SCRIPT_SERVICE_NAME')
+    service_name = os.environ.get('SCORE_SERVICE_NAME')
     entry_script = os.path.join(os.environ.get('SCRIPT_FOLDER'), 'score.py')
 
     inference_config = InferenceConfig(entry_script=entry_script, environment=environment)
@@ -56,15 +56,11 @@ def downloadLatestModel(ws):
 def main():
     ws = connectWithAzure()
 
-    if os.environ.get('LOCAL_DEPLOYMENT') == "true":
-        print('Deploying locally.')
-        model = downloadLatestModel(ws)
-        print(f'Downloaded the model {model.id} locally. You can now proceed to build the Docker image.')
-    else:
-        print('Deploying on Azure.')
-        environment = prepareEnv(ws)
-        service = prepareDeployment(ws, environment)
-        service.wait_for_deployment(show_output=True)
+    print(os.environ)
+
+    environment = prepareEnv(ws)
+    service = prepareDeployment(ws, environment)
+    service.wait_for_deployment(show_output=True)
 
 
 if __name__ == '__main__':
