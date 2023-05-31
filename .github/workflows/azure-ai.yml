@@ -88,7 +88,7 @@ env:
 
   CLIENT_ID: 7bf2b3d8-765a-407d-b47a-2ee4a392c378 # Change this !
   TENANT_ID: 4ded4bb1-6bff-42b3-aed7-6a36a503bf7a # Change this !
-  WORKSPACE_NAME: mlops-nathan # Change this !
+  WORKSPACE_NAME: mlops-auto # Change this !
   RESOURCE_GROUP: mlops # Change this !
   SUBSCRIPTION_ID: 7c50f9c3-289b-4ae0-a075-08784b3b9042 # Change this !
 
