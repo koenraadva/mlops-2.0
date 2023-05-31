@@ -150,7 +150,7 @@ jobs:
         (needs.data-preparing.result == 'success' || needs.data-preparing.result == 'skipped') &&
         inputs.ai_training
       }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     env:
       INITIAL_LEARNING_RATE: 0.01
@@ -186,7 +186,7 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
 
 
-      - name: 'Run data prep script'
+      - name: 'Run training script on GitHub Runner'
         id: aitraining
         working-directory: ${{ env.WORKDIR }}
         run: |
