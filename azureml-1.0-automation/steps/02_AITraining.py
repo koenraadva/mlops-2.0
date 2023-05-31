@@ -61,7 +61,7 @@ def prepareComputeCluster(ws):
         # For a more detailed view of current AmlCompute status, use get_status()
         print(compute_target.get_status().serialize())
 
-        return compute_target
+    return compute_target
 
 def prepareEnvironment(ws):
 
@@ -79,7 +79,7 @@ def prepareEnvironment(ws):
 
     # We can directly create an environment from a saved file
     env = Environment.from_conda_specification(environment_name, file_path=conda_dependencies_path)
-    env.python.user_managed_dependencies = os.environ.get('TRAIN_ON_LOCAL') != 'true' # False when training on local machine, otherwise True.
+    env.python.user_managed_dependencies = True # False when training on local machine, otherwise True.
     # Register environment to re-use later
     env.register(workspace = ws)
 
@@ -133,8 +133,6 @@ def downloadAndRegisterModel(ws, run):
 def main():
     ws = connectWithAzure()
 
-    TRAIN_ON_LOCAL = os.environ.get('TRAIN_ON_LOCAL') == 'true'
-    
     compute_target = prepareComputeCluster(ws)
 
     # We can also run on the local machine if we set the compute_target to None. We specify this in an ENV variable as TRAIN_ON_LOCAL.
