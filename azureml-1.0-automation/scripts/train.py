@@ -6,6 +6,7 @@ import numpy as np
 
 # This time we will need our Tensorflow Keras libraries, as we will be working with the AI training now
 from tensorflow import keras
+import tensorflow as tf
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.metrics import classification_report, confusion_matrix
@@ -103,7 +104,7 @@ cb_early_stop = keras.callbacks.EarlyStopping(monitor='val_loss',
 # Reduce the Learning Rate when not learning more for 4 epochs.
 cb_reduce_lr_on_plateau = keras.callbacks.ReduceLROnPlateau(factor=.5, patience=4, verbose=1)
 
-opt = SGD(lr=INITIAL_LEARNING_RATE, decay=INITIAL_LEARNING_RATE / MAX_EPOCHS) # Define the Optimizer
+opt = tf.keras.optimizers.legacy.SGD(lr=INITIAL_LEARNING_RATE, decay=INITIAL_LEARNING_RATE / MAX_EPOCHS) # Define the Optimizer
 
 model = buildModel((64, 64, 3), 3) # Create the AI model as defined in the utils script.
 
