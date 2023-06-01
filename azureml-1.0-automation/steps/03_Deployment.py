@@ -58,7 +58,7 @@ def main():
 
     print(os.environ)
 
-    if (LOCAL_DEPLOYMENT == 'True'):
+    if (LOCAL_DEPLOYMENT == 'true'):
         model = downloadLatestModel(ws)
         print(model)
         return
