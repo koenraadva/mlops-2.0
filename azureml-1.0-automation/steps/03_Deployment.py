@@ -58,9 +58,15 @@ def main():
 
     print(os.environ)
 
-    environment = prepareEnv(ws)
-    service = prepareDeployment(ws, environment)
-    service.wait_for_deployment(show_output=True)
+    if (LOCAL_DEPLOYMENT == 'True'):
+        model = downloadLatestModel(ws)
+        print(model)
+        return
+    else:
+        print("Deploying to Azure")
+        environment = prepareEnv(ws)
+        service = prepareDeployment(ws, environment)
+        service.wait_for_deployment(show_output=True)
 
 
 if __name__ == '__main__':
