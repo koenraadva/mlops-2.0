@@ -86,11 +86,11 @@ on:
 env:
   CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
 
-  CLIENT_ID: 7bf2b3d8-765a-407d-b47a-2ee4a392c378 # Change this !
+  CLIENT_ID: c2250f8d-f977-49b5-9d19-37ceb9b26bac # Change this !
   TENANT_ID: 4ded4bb1-6bff-42b3-aed7-6a36a503bf7a # Change this !
-  WORKSPACE_NAME: mlops-auto # Change this !
-  RESOURCE_GROUP: mlops # Change this !
-  SUBSCRIPTION_ID: 7c50f9c3-289b-4ae0-a075-08784b3b9042 # Change this !
+  WORKSPACE_NAME: koenraadva-ml # Change this !
+  RESOURCE_GROUP: mlops-demo # Change this !
+  SUBSCRIPTION_ID: 1e0f5c51-40a2-4bec-92db-decf94235b27 # Change this !
 
   ANIMALS: cats,dogs,pandas # As we have three classes, let's just defined them here. This way we can easily loop over them later.
   TRAIN_SET_NAME: animals-training-set
@@ -160,7 +160,7 @@ jobs:
       EXPERIMENT_NAME: animal-classification
 
       ## Compute cluster parts
-      AML_COMPUTE_CLUSTER_NAME: nathan-cpu-cluster
+      AML_COMPUTE_CLUSTER_NAME: cpu-cluster
       AML_COMPUTE_CLUSTER_MIN_NODES: 1
       AML_COMPUTE_CLISTER_MAX_NODES: 4
       AML_COMPUTE_CLUSTER_SKU: STANDARD_D2_V2
@@ -260,7 +260,7 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            ghcr.io/nathansegers/mlops-2.0
+            ghcr.io/koenraadva/mlops-2.0
           # generate Docker tags based on the following events/attributes:
           # The GitHub Branch
           # The GitHub SHA
