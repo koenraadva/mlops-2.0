@@ -8,8 +8,9 @@ jobs:
   start:
     uses: ./.github/workflows/azure-ai.yml
     with:
-      data_prep: false
-      ai_training: false
+      # Set these to "true" if you want to run these pipeline steps or "false" to skip it
+      data_prep: true 
+      ai_training: true
       api_creation: true
       process_images: true
       split_images: true
