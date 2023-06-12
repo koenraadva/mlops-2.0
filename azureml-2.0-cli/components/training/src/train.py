@@ -4,7 +4,6 @@ import os
 from glob import glob
 import random
 import tensorflow as tf
-import mlflow
 
 # This time we will need our Tensorflow Keras libraries, as we will be working with the AI training now
 from tensorflow import keras
@@ -38,9 +37,6 @@ def main():
     parser.add_argument('--output_folder', type=str, dest='output_folder', help='Output folder')
     parser.add_argument('--epochs', type=int, dest='epochs', help='The amount of Epochs to train')
     args = parser.parse_args()
-
-    # Start Logging
-    mlflow.start_run()
 
     print(" ".join(f"{k}={v}" for k, v in vars(args).items()))
 
@@ -149,9 +145,6 @@ def main():
     np.save(os.path.join(output_folder, '/confusion_matrix.npy'), cf_matrix)
 
     print("DONE TRAINING")
-
-    # Stop Logging
-    mlflow.end_run()
 
 
 if __name__ == "__main__":
