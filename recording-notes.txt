@@ -1,0 +1,13 @@
+In this part of the recording, we will have a look what the result was from the first Stage.
+In The GitHub Actions pipeline, a lot of things have happened and successfully ran
+
+
+You will notice that the animal datasets have been prepared, split and uploaded to the Azure Portal again, but are we sure?? Let's find out in the Portal.
+
+We can download our newly made Docker Image to see if the new model is included in there. You will notice the unique tag using the "sha-..." hash. It also has the latest tag, so we can use that one to deploy our model.
+
+I have not included the Kubernetes deployments in this video, or this assignment, because we have already done that in the previous assignments...
+
+Now, let's go on to the next Stage, where we will explore the differences between the first SDK version and the second one, which is, of course, a little bit newer.
+
+This time, we move back to Notebooks, in the directory "azure-2.0-SDK"
