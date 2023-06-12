@@ -43,6 +43,7 @@ on:
         default: false
         required: true
 
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     branches: [ main, master ]
     inputs:
@@ -82,9 +83,9 @@ on:
         default: false
         required: true
     
-
+# These are the global environment values that can be used by all the jobs, because they all need access to these values.
 env:
-  CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+  CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }} # Set this value in your GitHub actions Secrets
 
   CLIENT_ID: c2250f8d-f977-49b5-9d19-37ceb9b26bac # Change this !
   TENANT_ID: 4ded4bb1-6bff-42b3-aed7-6a36a503bf7a # Change this !
@@ -101,19 +102,18 @@ env:
 
   RANDOM_SEED: 42 # Random values that should be same for all the steps
 
-  WORKDIR: azureml-1.0-automation
+  WORKDIR: azureml-1.0-automation # This is the directory of your GitHub repository codebase that contains all the Python scripts to run in order.
   GIT_SHA: ${{ github.sha }} # Set the SHA to use in the code
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
 
   data-preparing:
-    ## Note: Uncomment this if you are activating the previous job called 'dependencies'.
-    # needs: [dependencies] # Wait until this job was finished.
     if: ${{ inputs.data_prep }}
     # The type of runner that the job will run on
     runs-on: ubuntu-20.04 # Because of issues with dotnet, we downgraded this one
 
+    # These environment values are specific for this job, and not used in all the other ones...
     env:
       DATA_FOLDER: data
       DATASET_VERSION: 'latest'
