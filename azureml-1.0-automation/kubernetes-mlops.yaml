@@ -18,7 +18,6 @@ spec:
     spec:
       containers:
       - name: mlops
-        #image: ghcr.io/koenraadva/mlops-2.0:sha-9014599
         image: ghcr.io/koenraadva/mlops-2.0:$GIT_SHA
         ports:
         - containerPort: 80

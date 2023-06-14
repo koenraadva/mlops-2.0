@@ -316,7 +316,7 @@ jobs:
           
       - name: Create K8s namespace, if not exists
         run: |
-          kubectl create namespace gh-actions-test || true
+          kubectl create namespace mlops || true
       
       - name: Deploy to K8s
         working-directory: ${{ env.WORKDIR }}
