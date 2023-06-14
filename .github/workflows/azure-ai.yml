@@ -306,6 +306,9 @@ jobs:
     runs-on: self-hosted
 
     steps:
+     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      
       - name: Pass GitHub actions parameters to Kubernetes deployment
         working-directory: ${{ env.WORKDIR }}
         run: |
