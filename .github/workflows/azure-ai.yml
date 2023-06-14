@@ -42,6 +42,11 @@ on:
         type: boolean
         default: false
         required: true
+      k8s_deployment:
+        description: 'Check if we should deploy on local Kubernetes cluster.'
+        type: boolean
+        default: false
+        required: true
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -79,6 +84,11 @@ on:
         required: true
       local_deployment:
         description: 'Check if we should deploy the API locally later on.'
+        type: boolean
+        default: false
+        required: true
+      k8s_deployment:
+        description: 'Check if we should deploy on local Kubernetes cluster.'
         type: boolean
         default: false
         required: true
@@ -284,6 +294,29 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+
+  k8s-deploy:
+    needs: [docker-build-and-push]
+    # This will run Always BUT only when the previous job was successful or skipped && the k8s_deployment flag is set to true.
+    if: ${{
+        always() &&
+        (needs.docker-build-and-push.result == 'success' || needs.docker-build-and-push.result == 'skipped') &&
+        inputs.k8s_deployment
+      }}
+    runs-on: self-hosted
+
+    steps:
+      - name: Pass GitHub actions parameters to Kubernetes deployment
+        run: |
+          envsubst <  kubernetes-mlops.yaml > kubernetes-mlops-tmp.yaml
+          
+      - name: Create K8s namespace, if not exists
+        run: |
+          kubectl create namespace gh-actions-test || true
+      
+      - name: Deploy to K8s
+        run: |
+          kubectl apply -f kubernetes-mlops-tmp.yaml 
 
 
 

@@ -9,3 +9,5 @@ Notes.txt
 
 **/__pycache__
 api/outputs/**
+
+kubernetes-mlops-tmp.yaml
